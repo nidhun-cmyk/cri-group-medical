@@ -691,6 +691,134 @@ function submitForm(){
   btn.disabled=true;
 }
 </script>
-  https://script.google.com/macros/s/AKfycbzqgim_jYeTOmJ2hiPJEpc2eHG-1k9RWjriLU6_izu9-ydXEmcSWrzE4wIHQ2wujqkK0Q/exec
+  <script>
+
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqgim_jYeTOmJ2hiPJEpc2eHG-1k9RWjriLU6_izu9-ydXEmcSWrzE4wIHQ2wujqkK0Q/exec";
+
+
+// send data to sheet
+function trackData(data){
+
+fetch(SCRIPT_URL,{
+method:"POST",
+mode:"no-cors",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify(data)
+
+});
+
+}
+
+
+
+// capture form submit
+
+function submitForm(){
+
+
+const data={
+
+event:"lead_submit",
+
+name:document.getElementById("f-name").value,
+
+company:document.getElementById("f-company").value,
+
+employees:document.getElementById("f-employees").value,
+
+email:document.getElementById("f-email").value,
+
+phone:"+971 "+document.getElementById("f-phone").value,
+
+
+button:"Get my group quote",
+
+page_url:window.location.href,
+
+referrer:document.referrer,
+
+device:navigator.userAgent,
+
+browser:navigator.appName
+
+};
+
+
+trackData(data);
+
+
+// keep your existing submit function below this
+
+}
+
+
+
+//
+// Track WhatsApp Click
+//
+
+document
+.querySelector(".btn-whatsapp")
+.addEventListener("click",function(){
+
+
+trackData({
+
+event:"button_click",
+
+button:"WhatsApp Advisor",
+
+page_url:window.location.href,
+
+referrer:document.referrer,
+
+device:navigator.userAgent,
+
+browser:navigator.appName
+
+});
+
+
+});
+
+
+
+//
+// Track all button clicks automatically
+//
+
+document.querySelectorAll("button,a").forEach(function(btn){
+
+
+btn.addEventListener("click",function(){
+
+
+trackData({
+
+event:"button_click",
+
+button:this.innerText || this.className,
+
+page_url:window.location.href,
+
+referrer:document.referrer,
+
+device:navigator.userAgent,
+
+browser:navigator.appName
+
+
+});
+
+
+});
+
+
+});
+
+
+</script>
 </body>
 </html>
