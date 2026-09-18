@@ -836,6 +836,7 @@ browser:navigator.appName
 
 document.querySelectorAll("button,a").forEach(function(btn){
 
+if(btn.id === "quote-btn") return;
 
 btn.addEventListener("click",function(){
 
