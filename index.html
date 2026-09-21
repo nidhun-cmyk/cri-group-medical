@@ -800,70 +800,63 @@ document.getElementById('form-success').classList.add('active');
 
 
 
-//
-// Track WhatsApp Click
-//
+document.addEventListener("click", function(event) {
 
-document
-.querySelector(".btn-whatsapp")
-.addEventListener("click",function(){
+  const element = event.target.closest("a, button");
 
+  if (!element) return;
 
-trackData({
+  if (element.id === "quote-btn") {
+    return;
+  }
 
-event:"button_click",
+  if (
+    element.classList.contains("btn-whatsapp") ||
+    element.classList.contains("btn-ghost-white")
+  ) {
 
-button:"WhatsApp Advisor",
+    const formData = getFormData();
 
-page_url:window.location.href,
+    trackData({
 
-referrer:document.referrer,
+      event: "button_click",
 
-device:navigator.userAgent,
+      name: formData.name,
+      company: formData.company,
+      employees: formData.employees,
+      email: formData.email,
+      phone: formData.phone,
 
-browser:navigator.appName
+      button: "WhatsApp Advisor",
 
-});
+      ...getTrackingInfo()
 
+    });
 
-});
+    return;
+  }
 
+  trackData({
 
+    event: "button_click",
 
-//
-// Track all button clicks automatically
-//
+    name: "",
+    company: "",
+    employees: "",
+    email: "",
+    phone: "",
 
-document.querySelectorAll("button,a").forEach(function(btn){
+    button:
+      element.innerText.trim() ||
+      element.getAttribute("aria-label") ||
+      element.className ||
+      "Unknown button",
 
-if(btn.id === "quote-btn") return;
+    ...getTrackingInfo()
 
-btn.addEventListener("click",function(){
-
-
-trackData({
-
-event:"button_click",
-
-button:this.innerText || this.className,
-
-page_url:window.location.href,
-
-referrer:document.referrer,
-
-device:navigator.userAgent,
-
-browser:navigator.appName
-
-
-});
-
+  });
 
 });
-
-
-});
-
 
 </script>
 </body>
