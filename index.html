@@ -1214,3 +1214,174 @@ document.addEventListener("click",function(event){
 </script>
 </body>
 </html>
+
+
+<!-- POLICYHOUSE TRACKING START -->
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqgim_jYeTOmJ2hiPJEpc2eHG-1k9RWjriLU6_izu9-ydXEmcSWrzE4wIHQ2wujqkK0Q/exec";
+
+function getValue(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : "";
+}
+
+function getFormData() {
+  const phone = getValue("f-phone");
+  return {
+    name: getValue("f-name"),
+    company: getValue("f-company"),
+    employees: getValue("f-employees"),
+    email: getValue("f-email"),
+    phone: phone ? "+971" + phone.replace(/\s+/g, "") : ""
+  };
+}
+
+function getTrackingData() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    page_url: window.location.href,
+    referrer: document.referrer || "",
+    device: navigator.userAgent || "",
+    browser: navigator.appName || "",
+    utm_source: params.get("utm_source") || "",
+    utm_medium: params.get("utm_medium") || "",
+    utm_campaign: params.get("utm_campaign") || "",
+    utm_term: params.get("utm_term") || "",
+    utm_content: params.get("utm_content") || "",
+    fbclid: params.get("fbclid") || "",
+    event_id: "ph_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10)
+  };
+}
+
+function sendTracking(data, reliable) {
+  const payload = JSON.stringify(data);
+
+  if (reliable && navigator.sendBeacon) {
+    try {
+      const blob = new Blob([payload], { type: "text/plain;charset=UTF-8" });
+      if (navigator.sendBeacon(SCRIPT_URL, blob)) return true;
+    } catch (e) {}
+  }
+
+  try {
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
+      body: payload,
+      keepalive: true
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/*
+ * Lead submission.
+ * This function intentionally uses the existing validation helpers
+ * from the landing page: setFieldState(), validEmail(),
+ * blockedDomain(), and validUAEPhone().
+ */
+function submitForm() {
+  const name = getValue("f-name");
+  const company = getValue("f-company");
+  const employees = getValue("f-employees");
+  const email = getValue("f-email");
+  const phone = getValue("f-phone");
+
+  let ok = true;
+
+  if (typeof setFieldState === "function") {
+    setFieldState("f-name", "err-name", name.length < 2);
+    setFieldState("f-company", "err-company", company.length < 2);
+    setFieldState("f-employees", "err-employees", !employees);
+
+    const emailBad =
+      !email ||
+      (typeof validEmail === "function" && !validEmail(email)) ||
+      (typeof blockedDomain === "function" && blockedDomain(email));
+
+    const phoneBad =
+      typeof validUAEPhone === "function"
+        ? !validUAEPhone(phone)
+        : !phone;
+
+    setFieldState("f-email", "err-email", emailBad);
+    setFieldState("f-phone", "err-phone", phoneBad);
+
+    if (name.length < 2 || company.length < 2 || !employees || emailBad || phoneBad) {
+      ok = false;
+    }
+  } else {
+    ok = name.length >= 2 && company.length >= 2 && !!employees && !!email && !!phone;
+  }
+
+  if (!ok) {
+    const first = document.querySelector(".field-error.show");
+    if (first) {
+      first.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    return;
+  }
+
+  const data = {
+    event: "lead_submit",
+    ...getFormData(),
+    button: "Get my group quote",
+    ...getTrackingData()
+  };
+
+  sendTracking(data, false);
+
+  const fields = document.getElementById("form-fields");
+  const success = document.getElementById("form-success");
+
+  if (fields) fields.style.display = "none";
+  if (success) success.classList.add("active");
+}
+
+/*
+ * ONE click listener only.
+ * This prevents duplicate WhatsApp tracking.
+ */
+document.addEventListener("click", function(event) {
+  const element = event.target.closest("a, button");
+  if (!element) return;
+
+  // Get Quote is handled by submitForm().
+  if (element.id === "quote-btn") return;
+
+  // WhatsApp buttons.
+  if (
+    element.classList.contains("btn-whatsapp") ||
+    element.classList.contains("btn-ghost-white")
+  ) {
+    sendTracking({
+      event: "button_click",
+      ...getFormData(),
+      button: "WhatsApp Advisor",
+      ...getTrackingData()
+    }, true);
+
+    return;
+  }
+
+  // Other buttons/links.
+  sendTracking({
+    event: "button_click",
+    name: "",
+    company: "",
+    employees: "",
+    email: "",
+    phone: "",
+    button:
+      element.innerText.trim() ||
+      element.getAttribute("aria-label") ||
+      element.className ||
+      "Unknown button",
+    ...getTrackingData()
+  }, true);
+});
+</script>
+<!-- POLICYHOUSE TRACKING END -->
