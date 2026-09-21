@@ -1,6 +1,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -662,9 +663,21 @@ footer{background:var(--cobalt-dark);padding:3.5rem 5% 2.25rem;text-align:center
 <script>
 const BLOCKED = ['gmail.com','yahoo.com','yahoo.co.uk','yahoo.com.au','hotmail.com','hotmail.co.uk','hotmail.fr','outlook.com','outlook.co.uk','live.com','live.co.uk','msn.com','icloud.com','me.com','mac.com','aol.com','aol.co.uk','protonmail.com','proton.me','tutanota.com','tutamail.com','tutanota.de','zoho.com','zohomail.com','yandex.com','yandex.ru','yandex.ua','mail.com','gmx.com','gmx.net','gmx.de','inbox.com','fastmail.com','fastmail.fm','rediffmail.com','mailinator.com','guerrillamail.com','trashmail.com','tempmail.com','throwam.com','sharklasers.com','dispostable.com','10minutemail.com','yopmail.com','yopmail.fr','maildrop.cc','spamgourmet.com','mailnull.com','spam4.me','trashmail.at','fakeinbox.com','tempr.email','emailondeck.com','mytemp.email','getnada.com'];
 
-function validEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim());}
-function blockedDomain(e){const d=(e.trim().split('@')[1]||'').toLowerCase();return BLOCKED.includes(d)||BLOCKED.some(b=>d.endsWith('.'+b));}
-function validUAEPhone(p){const d=p.replace(/[\s\-\(\)]/g,'');return/^5[024568]\d{7}$/.test(d)||/^[234679]\d{7}$/.test(d);}
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqgim_jYeTOmJ2hiPJEpc2eHG-1k9RWjriLU6_izu9-ydXEmcSWrzE4wIHQ2wujqkK0Q/exec";
+
+function validEmail(e){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim());
+}
+
+function blockedDomain(e){
+  const d=(e.trim().split('@')[1]||'').toLowerCase();
+  return BLOCKED.includes(d)||BLOCKED.some(b=>d.endsWith('.'+b));
+}
+
+function validUAEPhone(p){
+  const d=p.replace(/[\s\-\(\)]/g,'');
+  return /^5[024568]\d{7}$/.test(d)||/^[234679]\d{7}$/.test(d);
+}
 
 function setFieldState(inputId,errorId,hasError){
   const inp=document.getElementById(inputId);
@@ -675,176 +688,517 @@ function setFieldState(inputId,errorId,hasError){
   err.classList.toggle('show',hasError);
 }
 
+
+/* ------------------------------------------------------------
+   TRACKING HELPERS
+------------------------------------------------------------ */
+
+function getEventId(){
+  if(window.crypto && crypto.randomUUID){
+    return crypto.randomUUID();
+  }
+
+  return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+}
+
+
+function getFormData(){
+
+  const phoneField = document.getElementById('f-phone');
+
+  return {
+
+    name:
+      document.getElementById('f-name')?.value.trim() || "",
+
+    company:
+      document.getElementById('f-company')?.value.trim() || "",
+
+    employees:
+      document.getElementById('f-employees')?.value || "",
+
+    email:
+      document.getElementById('f-email')?.value.trim() || "",
+
+    phone:
+      phoneField && phoneField.value.trim()
+        ? "+971" + phoneField.value.replace(/\s+/g,'')
+        : ""
+
+  };
+}
+
+
+function getTrackingInfo(){
+
+  const params = new URLSearchParams(window.location.search);
+
+  return {
+
+    page_url: window.location.href,
+
+    referrer: document.referrer || "",
+
+    device: /Mobi|Android/i.test(navigator.userAgent)
+      ? "Mobile"
+      : "Desktop",
+
+    browser: navigator.userAgent,
+
+    utm_source: params.get("utm_source") || "",
+
+    utm_medium: params.get("utm_medium") || "",
+
+    utm_campaign: params.get("utm_campaign") || "",
+
+    utm_content: params.get("utm_content") || "",
+
+    utm_term: params.get("utm_term") || "",
+
+    fbclid: params.get("fbclid") || ""
+
+  };
+}
+
+
+/*
+ * Normal tracking request.
+ * text/plain avoids unnecessary CORS preflight.
+ */
+function trackData(data){
+
+  try{
+
+    fetch(SCRIPT_URL,{
+
+      method:"POST",
+
+      mode:"no-cors",
+
+      headers:{
+        "Content-Type":"text/plain;charset=utf-8"
+      },
+
+      body:JSON.stringify(data),
+
+      keepalive:true
+
+    }).catch(function(error){
+
+      console.error("Tracking error:",error);
+
+    });
+
+  }catch(error){
+
+    console.error("Tracking error:",error);
+
+  }
+
+}
+
+
+/*
+ * Tracking for links that immediately navigate to another page/app.
+ * sendBeacon is used so the click is sent before WhatsApp/browser navigation.
+ */
+function trackNavigation(data){
+
+  try{
+
+    const payload = JSON.stringify(data);
+
+    const blob = new Blob(
+      [payload],
+      {type:"text/plain;charset=UTF-8"}
+    );
+
+    const sent = navigator.sendBeacon(
+      SCRIPT_URL,
+      blob
+    );
+
+    if(!sent){
+
+      trackData(data);
+
+    }
+
+  }catch(error){
+
+    console.error("Beacon tracking error:",error);
+
+    trackData(data);
+
+  }
+
+}
+
+
+/* ------------------------------------------------------------
+   FORM VALIDATION
+------------------------------------------------------------ */
+
 document.addEventListener('DOMContentLoaded',()=>{
+
   const nameEl=document.getElementById('f-name');
   const compEl=document.getElementById('f-company');
   const empEl=document.getElementById('f-employees');
   const emailEl=document.getElementById('f-email');
   const phoneEl=document.getElementById('f-phone');
 
-  if(nameEl) nameEl.addEventListener('blur',()=>setFieldState('f-name','err-name',nameEl.value.trim().length<2));
-  if(compEl) compEl.addEventListener('blur',()=>setFieldState('f-company','err-company',compEl.value.trim().length<2));
-  if(empEl) empEl.addEventListener('change',()=>setFieldState('f-employees','err-employees',!empEl.value));
-  if(emailEl) emailEl.addEventListener('blur',()=>{const v=emailEl.value.trim();setFieldState('f-email','err-email',!v||!validEmail(v)||blockedDomain(v));});
-  if(phoneEl){
-    phoneEl.addEventListener('input',()=>{phoneEl.value=phoneEl.value.replace(/[^\d\s\-\(\)]/g,'');});
-    phoneEl.addEventListener('blur',()=>setFieldState('f-phone','err-phone',!validUAEPhone(phoneEl.value)));
+  if(nameEl){
+    nameEl.addEventListener(
+      'blur',
+      ()=>setFieldState(
+        'f-name',
+        'err-name',
+        nameEl.value.trim().length<2
+      )
+    );
   }
 
-  /* Show nav CTA on mobile when links hidden */
-  // Nav CTA is now always visible - no JS needed
+  if(compEl){
+    compEl.addEventListener(
+      'blur',
+      ()=>setFieldState(
+        'f-company',
+        'err-company',
+        compEl.value.trim().length<2
+      )
+    );
+  }
+
+  if(empEl){
+    empEl.addEventListener(
+      'change',
+      ()=>setFieldState(
+        'f-employees',
+        'err-employees',
+        !empEl.value
+      )
+    );
+  }
+
+  if(emailEl){
+    emailEl.addEventListener('blur',()=>{
+
+      const v=emailEl.value.trim();
+
+      setFieldState(
+        'f-email',
+        'err-email',
+        !v || !validEmail(v) || blockedDomain(v)
+      );
+
+    });
+  }
+
+  if(phoneEl){
+
+    phoneEl.addEventListener(
+      'input',
+      ()=>{
+        phoneEl.value=phoneEl.value.replace(
+          /[^\d\s\-\(\)]/g,
+          ''
+        );
+      }
+    );
+
+    phoneEl.addEventListener(
+      'blur',
+      ()=>setFieldState(
+        'f-phone',
+        'err-phone',
+        !validUAEPhone(phoneEl.value)
+      )
+    );
+
+  }
+
 });
 
+
+/* ------------------------------------------------------------
+   LEAD FORM SUBMISSION
+------------------------------------------------------------ */
+
 function submitForm(){
-  const name=document.getElementById('f-name').value.trim();
-  const company=document.getElementById('f-company').value.trim();
-  const emp=document.getElementById('f-employees').value;
-  const email=document.getElementById('f-email').value.trim();
-  const phone=document.getElementById('f-phone').value.trim();
+
+  const data = getFormData();
+
   let ok=true;
 
-  if(name.length<2){setFieldState('f-name','err-name',true);ok=false;}else setFieldState('f-name','err-name',false);
-  if(company.length<2){setFieldState('f-company','err-company',true);ok=false;}else setFieldState('f-company','err-company',false);
-  if(!emp){setFieldState('f-employees','err-employees',true);ok=false;}else setFieldState('f-employees','err-employees',false);
-  const emailBad=!email||!validEmail(email)||blockedDomain(email);
-  setFieldState('f-email','err-email',emailBad);if(emailBad)ok=false;
-  const phoneBad=!validUAEPhone(phone);
-  setFieldState('f-phone','err-phone',phoneBad);if(phoneBad)ok=false;
 
-  if(!ok){const first=document.querySelector('.field-error.show');if(first)first.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  if(data.name.length<2){
 
-  const btn=document.getElementById('quote-btn');
-  btn.textContent='✓ Received - an advisor will be in touch shortly';
-  btn.style.background='#2e7d32';
-  btn.disabled=true;
-}
-</script>
-  <script>
+    setFieldState(
+      'f-name',
+      'err-name',
+      true
+    );
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqgim_jYeTOmJ2hiPJEpc2eHG-1k9RWjriLU6_izu9-ydXEmcSWrzE4wIHQ2wujqkK0Q/exec";
+    ok=false;
 
+  }else{
 
-// send data to sheet
-function trackData(data){
+    setFieldState(
+      'f-name',
+      'err-name',
+      false
+    );
 
-fetch(SCRIPT_URL,{
-method:"POST",
-mode:"no-cors",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify(data)
-
-});
-
-}
-
-
-
-// capture form submit
-
-function submitForm(){
-
-
-const data={
-
-event:"lead_submit",
-
-name:document.getElementById("f-name").value,
-
-company:document.getElementById("f-company").value,
-
-employees:document.getElementById("f-employees").value,
-
-email:document.getElementById("f-email").value,
-
-phone: "+971" + document.getElementById("f-phone").value.replace(/\s+/g,''),
-
-button:"Get my group quote",
-
-page_url:window.location.href,
-
-referrer:document.referrer,
-
-device:navigator.userAgent,
-
-browser:navigator.appName
-
-};
-
-
-trackData(data);
-
-
-// keep your existing submit function below this
-
-// Validate fields (helpers defined in first script block)
-var _n=document.getElementById('f-name').value.trim();
-var _c=document.getElementById('f-company').value.trim();
-var _e=document.getElementById('f-employees').value;
-var _em=document.getElementById('f-email').value.trim();
-var _ph=document.getElementById('f-phone').value.trim();
-var _ok=true;
-if(_n.length<2){setFieldState('f-name','err-name',true);_ok=false;}else setFieldState('f-name','err-name',false);
-if(_c.length<2){setFieldState('f-company','err-company',true);_ok=false;}else setFieldState('f-company','err-company',false);
-if(!_e){setFieldState('f-employees','err-employees',true);_ok=false;}else setFieldState('f-employees','err-employees',false);
-var _eb=!_em||!validEmail(_em)||blockedDomain(_em);
-setFieldState('f-email','err-email',_eb);if(_eb)_ok=false;
-var _pb=!validUAEPhone(_ph);
-setFieldState('f-phone','err-phone',_pb);if(_pb)_ok=false;
-if(!_ok){var _f=document.querySelector('.field-error.show');if(_f)_f.scrollIntoView({behavior:'smooth',block:'center'});return;}
-document.getElementById('form-fields').style.display='none';
-document.getElementById('form-success').classList.add('active');
-
-}
-
-
-
-document.addEventListener("click", function(event) {
-
-  const element = event.target.closest("a, button");
-
-  if (!element) return;
-
-  if (element.id === "quote-btn") {
-    return;
   }
 
-  if (
+
+  if(data.company.length<2){
+
+    setFieldState(
+      'f-company',
+      'err-company',
+      true
+    );
+
+    ok=false;
+
+  }else{
+
+    setFieldState(
+      'f-company',
+      'err-company',
+      false
+    );
+
+  }
+
+
+  if(!data.employees){
+
+    setFieldState(
+      'f-employees',
+      'err-employees',
+      true
+    );
+
+    ok=false;
+
+  }else{
+
+    setFieldState(
+      'f-employees',
+      'err-employees',
+      false
+    );
+
+  }
+
+
+  const emailBad =
+    !data.email ||
+    !validEmail(data.email) ||
+    blockedDomain(data.email);
+
+  setFieldState(
+    'f-email',
+    'err-email',
+    emailBad
+  );
+
+  if(emailBad)ok=false;
+
+
+  const phoneValue =
+    document.getElementById('f-phone')?.value.trim() || "";
+
+  const phoneBad =
+    !validUAEPhone(phoneValue);
+
+  setFieldState(
+    'f-phone',
+    'err-phone',
+    phoneBad
+  );
+
+  if(phoneBad)ok=false;
+
+
+  if(!ok){
+
+    const first=
+      document.querySelector('.field-error.show');
+
+    if(first){
+
+      first.scrollIntoView({
+        behavior:'smooth',
+        block:'center'
+      });
+
+    }
+
+    return;
+
+  }
+
+
+  /*
+   * IMPORTANT:
+   * Tracking happens ONLY after successful validation.
+   */
+  trackData({
+
+    event:"lead_submit",
+
+    event_id:getEventId(),
+
+    name:data.name,
+
+    company:data.company,
+
+    employees:data.employees,
+
+    email:data.email,
+
+    phone:data.phone,
+
+    button:"Get my group quote",
+
+    ...getTrackingInfo()
+
+  });
+
+
+  const btn=
+    document.getElementById('quote-btn');
+
+  btn.textContent=
+    '✓ Received - an advisor will be in touch shortly';
+
+  btn.style.background=
+    '#2e7d32';
+
+  btn.disabled=true;
+
+
+  document.getElementById(
+    'form-fields'
+  ).style.display='none';
+
+
+  document.getElementById(
+    'form-success'
+  ).classList.add('active');
+
+}
+
+
+/* ------------------------------------------------------------
+   SINGLE CLICK TRACKER
+------------------------------------------------------------ */
+
+/*
+ * There is ONLY ONE click listener in this file.
+ *
+ * WhatsApp:
+ *   .btn-whatsapp
+ *   .btn-ghost-white
+ *   .success-wa
+ *
+ * Get Quote:
+ *   submitForm() handles it, so it is NOT logged again
+ *   as button_click.
+ *
+ * Everything else:
+ *   logged as button_click.
+ */
+
+document.addEventListener("click",function(event){
+
+  const element=
+    event.target.closest("a, button");
+
+
+  if(!element)return;
+
+
+  /*
+   * Get Quote is already tracked by submitForm().
+   * Prevent a duplicate button_click row.
+   */
+  if(element.id==="quote-btn"){
+
+    return;
+
+  }
+
+
+  /*
+   * WhatsApp buttons.
+   */
+  const isWhatsApp =
     element.classList.contains("btn-whatsapp") ||
-    element.classList.contains("btn-ghost-white")
-  ) {
+    element.classList.contains("btn-ghost-white") ||
+    element.classList.contains("success-wa");
 
-    const formData = getFormData();
 
-    trackData({
+  if(isWhatsApp){
 
-      event: "button_click",
+    const formData=
+      getFormData();
 
-      name: formData.name,
-      company: formData.company,
-      employees: formData.employees,
-      email: formData.email,
-      phone: formData.phone,
 
-      button: "WhatsApp Advisor",
+    trackNavigation({
+
+      event:"button_click",
+
+      event_id:getEventId(),
+
+      name:formData.name,
+
+      company:formData.company,
+
+      employees:formData.employees,
+
+      email:formData.email,
+
+      phone:formData.phone,
+
+      button:"WhatsApp Advisor",
 
       ...getTrackingInfo()
 
     });
 
+
+    /*
+     * IMPORTANT:
+     * Return immediately so the same click cannot
+     * be processed by the generic tracker.
+     */
     return;
+
   }
 
-  trackData({
 
-    event: "button_click",
+  /*
+   * All other buttons/links.
+   */
+  trackNavigation({
 
-    name: "",
-    company: "",
-    employees: "",
-    email: "",
-    phone: "",
+    event:"button_click",
+
+    event_id:getEventId(),
+
+    name:"",
+
+    company:"",
+
+    employees:"",
+
+    email:"",
+
+    phone:"",
 
     button:
       element.innerText.trim() ||
@@ -857,7 +1211,6 @@ document.addEventListener("click", function(event) {
   });
 
 });
-
 </script>
 </body>
 </html>
