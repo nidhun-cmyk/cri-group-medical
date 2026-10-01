@@ -765,19 +765,21 @@ function getWhatsAppMessage(){
 
   const details = [];
 
-  if(data.name) details.push("Name: " + data.name);
-  if(data.company) details.push("Company: " + data.company);
-  if(data.employees) details.push("Number of employees: " + data.employees);
-  if(data.email) details.push("Work email: " + data.email);
-  if(data.phone) details.push("Phone: " + data.phone);
+  if(data.name) details.push("*Name:* " + data.name);
+  if(data.company) details.push("*Company:* " + data.company);
+  if(data.employees) details.push("*Number of employees:* " + data.employees);
+  if(data.email) details.push("*Work email:* " + data.email);
+  if(data.phone) details.push("*Phone:* " + data.phone);
 
   return [
-    "Hi CRI, I'm interested in Group Health Insurance for my company.",
+    "Hello CRI Team,",
+    "",
+    "I'm interested in Group Health Insurance for my company. Please find my details below:",
     "",
     ...details,
     "",
-    "I'd like to speak with an advisor and get a quote."
-  ].join("\\n");
+    "I would like to speak with an advisor regarding the available options. Thank you."
+  ].join("\n");
 }
 
 function getWhatsAppUrl(){
