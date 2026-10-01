@@ -89,6 +89,10 @@ h1{font-family:var(--font-d);font-size:clamp(1.7rem,3vw,2.4rem);font-weight:700;
 .form-card{background:#fff;border:1px solid var(--grey-mid);border-radius:var(--radius-lg);padding:1.8rem;box-shadow:var(--shadow);position:sticky;top:80px;}
 .form-card h3{font-family:var(--font-d);font-size:1.15rem;font-weight:600;color:var(--cobalt);margin-bottom:.25rem;}
 .form-card .form-intro{font-size:.82rem;color:var(--text-muted);margin-bottom:1.3rem;line-height:1.55;}
+.quote-guidance{display:none;align-items:flex-start;gap:.6rem;margin:0 0 1rem;padding:.75rem .85rem;background:var(--cobalt-bg);border:1px solid rgba(11,25,45,.14);border-radius:var(--radius);color:var(--cobalt);font-size:.78rem;line-height:1.5;}
+.quote-guidance.show{display:flex;}
+.quote-guidance-icon{width:20px;height:20px;border-radius:50%;background:var(--cobalt);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;margin-top:.05rem;}
+.quote-guidance strong{font-weight:700;}
 .form-group{margin-bottom:.85rem;}
 .form-group label{display:block;font-size:.78rem;font-weight:600;color:var(--grey-dark);margin-bottom:.3rem;}.req{color:#c62828;margin-left:.1rem;}
 .form-group input,.form-group select{width:100%;padding:.65rem .85rem;border:1px solid var(--grey-mid);border-radius:var(--radius);font-family:var(--font-b);font-size:.9rem;color:var(--text);background:#fafafa;transition:border-color .2s,background .2s;appearance:none;}
@@ -276,7 +280,7 @@ footer{background:var(--cobalt-dark);padding:3.5rem 5% 2.25rem;text-align:center
       <a href="#why-cri">Why CRI</a>
       <a href="#how-it-works">How it works</a>
     </div>
-    <a class="nav-cta" href="#get-quote">Start Your Quote</a>
+    <a class="nav-cta" id="start-quote-btn" href="#get-quote">Start Your Quote</a>
   </div>
 </nav>
 
@@ -335,6 +339,10 @@ footer{background:var(--cobalt-dark);padding:3.5rem 5% 2.25rem;text-align:center
       <div id="form-fields">
       <h3>Get your group quote</h3>
       <p class="form-intro">No strings attached - just a clear view of your options.</p>
+      <div class="quote-guidance" id="quote-guidance" role="status" aria-live="polite">
+        <span class="quote-guidance-icon">✓</span>
+        <span><strong>Start your quote here.</strong> Fill in the form below and click <strong>Get my group quote</strong> to submit your request.</span>
+      </div>
       <div class="form-group">
         <label for="f-name">Full name <span class="req">*</span></label>
         <input type="text" id="f-name" placeholder="Your name" />
@@ -1148,6 +1156,31 @@ function submitForm(){
     'form-success'
   ).classList.add('active');
 
+}
+
+
+/* ------------------------------------------------------------
+   START YOUR QUOTE GUIDANCE
+------------------------------------------------------------ */
+
+const startQuoteBtn = document.getElementById('start-quote-btn');
+
+if(startQuoteBtn){
+  startQuoteBtn.addEventListener('click', function(){
+    const guidance = document.getElementById('quote-guidance');
+    const firstField = document.getElementById('f-name');
+
+    if(guidance){
+      guidance.classList.add('show');
+    }
+
+    /* After the smooth anchor scroll, place the cursor in the first field. */
+    window.setTimeout(function(){
+      if(firstField){
+        firstField.focus({preventScroll:true});
+      }
+    }, 450);
+  });
 }
 
 
